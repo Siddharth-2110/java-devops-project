@@ -1,0 +1,27 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/<YOUR_USERNAME>/<REPO_NAME>.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                pkill -f demo-1.0.jar || true
+                nohup java -jar target/demo-1.0.jar > app.log 2>&1 &
+                '''
+            }
+        }
+    }
+}
