@@ -22,7 +22,7 @@ pipeline {
                 dir('java-jenkins-demo') {
                     sh '''
                     pkill -f demo-1.0.jar || true
-                    nohup java -jar target/demo-1.0.jar > app.log 2>&1 &
+                    nohup java -jar target/demo-1.0.jar --server.port=8081 > app.log 2>&1 &
                     '''
                 }
             }
