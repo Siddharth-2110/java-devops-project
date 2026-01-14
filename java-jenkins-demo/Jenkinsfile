@@ -11,16 +11,20 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn clean package'
+                dir('java-jenkins-demo') {
+                    sh 'mvn clean package'
+                }
             }
         }
 
         stage('Deploy') {
             steps {
-                sh '''
-                pkill -f demo-1.0.jar || true
-                nohup java -jar target/demo-1.0.jar > app.log 2>&1 &
-                '''
+                dir('java-jenkins-demo') {
+                    sh '''
+                    pkill -f demo-1.0.jar || true
+                    nohup java -jar target/demo-1.0.jar > app.log 2>&1 &
+                    '''
+                }
             }
         }
     }
