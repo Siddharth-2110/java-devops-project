@@ -25,38 +25,38 @@ pipeline {
                             returnStdout: true
                         ).trim()
 
-                        echo "Deploying JAR: ${env.JAR_NAME}"
+                        echo "Using JAR: ${env.JAR_NAME}"
                     }
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy (DEBUG MODE)') {
             steps {
                 dir("${APP_DIR}") {
                     sh '''
-                    set -e
+                    set +e
 
-                    echo "Stopping old application (if running)..."
+                    echo "========== DEBUG INFO =========="
+                    echo "User:"
+                    whoami
+
+                    echo "Working directory:"
+                    pwd
+
+                    echo "Java version:"
+                    java -version
+
+                    echo "JAR to run:"
+                    echo "${JAR_NAME}"
+
+                    echo "Stopping old app if any..."
                     pkill -f "${JAR_NAME}" || true
 
-                    echo "Starting application..."
-                    nohup java -jar target/${JAR_NAME} \
-                      --server.port=${APP_PORT} \
-                      > app.log 2>&1 &
+                    echo "Starting app in FOREGROUND (debug)..."
+                    java -jar target/${JAR_NAME} --server.port=${APP_PORT}
 
-                    echo "Waiting for application to start..."
-                    sleep 8
-
-                    echo "Verifying application process..."
-                    pgrep -f "${JAR_NAME}" > /dev/null || (
-                        echo "❌ Application failed to start"
-                        echo "---- app.log ----"
-                        cat app.log
-                        exit 1
-                    )
-
-                    echo "✅ Application is running on port ${APP_PORT}"
+                    echo "========== APP EXITED =========="
                     '''
                 }
             }
@@ -65,10 +65,10 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Deployment successful"
+            echo "Build finished"
         }
         failure {
-            echo "🚨 Deployment failed – check logs"
+            echo "Build failed"
         }
     }
 }
