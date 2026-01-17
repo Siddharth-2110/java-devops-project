@@ -2,41 +2,66 @@ pipeline {
     agent any
 
     environment {
+        APP_DIR = 'java-jenkins-demo'
+        JAR_NAME = ''
         APP_PORT = '8081'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'github-ssh',
+                    credentialsId: 'git',
                     url: 'git@github.com:Siddharth-2110/java-devops-project.git'
             }
         }
 
         stage('Build') {
             steps {
-                dir('java-jenkins-demo') {
+                dir("${APP_DIR}") {
                     sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Resolve Artifact') {
+            steps {
+                dir("${APP_DIR}") {
+                    script {
+                        JAR_NAME = sh(
+                            script: "ls target/*.jar | grep -v original | xargs -n 1 basename",
+                            returnStdout: true
+                        ).trim()
+                        echo "Deploying JAR: ${JAR_NAME}"
+                    }
                 }
             }
         }
 
         stage('Deploy') {
             steps {
-                dir('java-jenkins-demo') {
-                    sh '''
-                    JAR_FILE=$(ls target/*.jar | head -n 1)
-                    echo "Deploying $JAR_FILE"
+                dir("${APP_DIR}") {
+                    sh """
+                    echo "Stopping old app if running..."
+                    pgrep -f "${JAR_NAME}" && pkill -f "${JAR_NAME}" || true
 
-                    pkill -f "$JAR_FILE" || true
-
-                    nohup java -jar "$JAR_FILE" \
-                      --server.port=$APP_PORT \
+                    echo "Starting new app..."
+                    nohup java -jar target/${JAR_NAME} \
+                      --server.port=${APP_PORT} \
                       > app.log 2>&1 &
-                    '''
+                    """
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Application deployed successfully on port ${APP_PORT}"
+        }
+        failure {
+            echo "❌ Deployment failed. Check logs."
         }
     }
 }
