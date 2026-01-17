@@ -1,18 +1,23 @@
 pipeline {
     agent any
 
+    environment {
+        APP_PORT = '8081'
+    }
+
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/Siddharth-2110/java-devops-project.git'
+                    credentialsId: 'github-ssh',
+                    url: 'git@github.com:Siddharth-2110/java-devops-project.git'
             }
         }
 
         stage('Build') {
             steps {
                 dir('java-jenkins-demo') {
-                    sh 'mvn clean package'
+                    sh 'mvn clean package -DskipTests'
                 }
             }
         }
@@ -21,8 +26,14 @@ pipeline {
             steps {
                 dir('java-jenkins-demo') {
                     sh '''
-                    pkill -f demo-1.0.jar || true
-                    nohup java -jar target/demo-1.0.jar --server.port=8081 > app.log 2>&1 &
+                    JAR_FILE=$(ls target/*.jar | head -n 1)
+                    echo "Deploying $JAR_FILE"
+
+                    pkill -f "$JAR_FILE" || true
+
+                    nohup java -jar "$JAR_FILE" \
+                      --server.port=$APP_PORT \
+                      > app.log 2>&1 &
                     '''
                 }
             }
