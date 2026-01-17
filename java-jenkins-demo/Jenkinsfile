@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        APP_DIR  = 'java-jenkins-demo'
-        APP_PORT = '8081'
+        APP_DIR   = 'java-jenkins-demo'
+        APP_PORT  = '8081'
         JAVA_OPTS = '-Xms128m -Xmx256m'
     }
 
@@ -30,10 +30,9 @@ pipeline {
                 dir("${APP_DIR}") {
                     script {
                         env.JAR_NAME = sh(
-                            script: "ls target/*.jar | grep -v original | head -n 1 | xargs -n 1 basename",
+                            script: "ls target/*.jar | grep -v original | head -n 1 | xargs basename",
                             returnStdout: true
                         ).trim()
-
                         echo "Resolved JAR: ${env.JAR_NAME}"
                     }
                 }
@@ -44,17 +43,18 @@ pipeline {
             steps {
                 dir("${APP_DIR}") {
                     sh '''
+                    set -e
+
                     echo "Stopping existing app..."
                     pkill -f "${JAR_NAME}" || true
 
-                    echo "Starting app in detached mode..."
-                    nohup setsid java ${JAVA_OPTS} \
-                      -jar target/${JAR_NAME} \
-                      --server.port=${APP_PORT} \
-                      > app.log 2>&1 < /dev/null &
+                    echo "Starting app (fully detached)..."
+                    CMD="nohup setsid java ${JAVA_OPTS} -jar target/${JAR_NAME} --server.port=${APP_PORT} > app.log 2>&1 < /dev/null &"
+
+                    echo "$CMD"
+                    bash -c "$CMD"
 
                     sleep 3
-                    echo "Deploy finished"
                     '''
                 }
             }
@@ -63,7 +63,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ App should be running on port ${APP_PORT}"
+            echo "✅ Deployment completed"
         }
         failure {
             echo "❌ Deployment failed"
