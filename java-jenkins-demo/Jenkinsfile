@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        APP_DIR   = 'java-jenkins-demo'
-        APP_PORT  = '8081'
+        APP_DIR  = 'java-jenkins-demo'
+        APP_PORT = '8081'
         JAVA_OPTS = '-Xms128m -Xmx256m'
     }
 
@@ -44,16 +44,17 @@ pipeline {
             steps {
                 dir("${APP_DIR}") {
                     sh '''
-                    echo "Stopping existing app (if any)..."
+                    echo "Stopping existing app..."
                     pkill -f "${JAR_NAME}" || true
 
-                    echo "Starting application in background..."
-                    nohup setsid java $JAVA_OPTS -jar target/${JAR_NAME} \
+                    echo "Starting app in detached mode..."
+                    nohup setsid java ${JAVA_OPTS} \
+                      -jar target/${JAR_NAME} \
                       --server.port=${APP_PORT} \
                       > app.log 2>&1 < /dev/null &
 
-                    sleep 2
-                    echo "Deployment command completed."
+                    sleep 3
+                    echo "Deploy finished"
                     '''
                 }
             }
@@ -62,10 +63,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Build finished. App should be running on port ${APP_PORT}"
+            echo "✅ App should be running on port ${APP_PORT}"
         }
         failure {
-            echo "❌ Build failed. Check Jenkins console & app.log"
+            echo "❌ Deployment failed"
         }
     }
 }
