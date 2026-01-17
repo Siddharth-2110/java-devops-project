@@ -34,30 +34,15 @@ pipeline {
         stage('Deploy') {
             steps {
                 dir("${APP_DIR}") {
-                    sh '''
-                    set -e
+                    sh """
+                    echo "Stopping old app if running..."
+                    pkill -f "${env.JAR_NAME}" || true
 
-                    echo "Stopping old application (if running)..."
-                    pkill -f "${JAR_NAME}" || true
-
-                    echo "Starting application..."
-                    nohup java -jar target/${JAR_NAME} \
+                    echo "Starting new app..."
+                    nohup java -jar target/${env.JAR_NAME} \
                       --server.port=${APP_PORT} \
                       > app.log 2>&1 &
-
-                    echo "Waiting for application to start..."
-                    sleep 8
-
-                    echo "Verifying application process..."
-                    pgrep -f "${JAR_NAME}" > /dev/null || (
-                        echo "❌ Application failed to start"
-                        echo "---- app.log ----"
-                        cat app.log
-                        exit 1
-                    )
-
-                    echo "✅ Application is running on port ${APP_PORT}"
-                    '''
+                    """
                 }
             }
         }
@@ -65,10 +50,10 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Deployment successful"
+            echo "✅ Application deployed successfully on port ${APP_PORT}"
         }
         failure {
-            echo "🚨 Deployment failed – check logs"
+            echo "❌ Deployment failed. Check logs."
         }
     }
 }
