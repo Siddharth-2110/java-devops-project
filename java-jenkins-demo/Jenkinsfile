@@ -3,10 +3,7 @@ pipeline {
 
     environment {
         APP_DIR = 'java-jenkins-demo'
-        APP_NAME = 'java-demo'
-        JAR_NAME = 'demo-1.0.jar'
-        DEPLOY_PATH = '/opt/java-demo/app.jar'
-        SERVICE_NAME = 'java-demo'
+        APP_JAR = 'demo-1.0.jar'
         APP_PORT = '8081'
     }
 
@@ -30,31 +27,41 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh """
+                sh '''
                 echo "Deploying application..."
-                sudo cp ${APP_DIR}/target/${JAR_NAME} ${DEPLOY_PATH}
-                sudo systemctl restart ${SERVICE_NAME}
-                """
+                sudo cp ${APP_DIR}/target/${APP_JAR} /opt/java-demo/app.jar
+                sudo systemctl restart java-demo
+                '''
             }
         }
 
         stage('Verify') {
             steps {
-                sh """
-                echo "Verifying application..."
-                sleep 3
-                curl -f http://localhost:${APP_PORT}
-                """
+                sh '''
+                echo "Waiting for application to become healthy..."
+
+                for i in {1..10}; do
+                  if curl -sf http://localhost:${APP_PORT} > /dev/null; then
+                    echo "✅ Application is UP"
+                    exit 0
+                  fi
+                  echo "⏳ App not ready yet... retry $i"
+                  sleep 3
+                done
+
+                echo "❌ Application failed to start"
+                exit 1
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "✅ Deployment successful. App running on port ${APP_PORT}"
+            echo "🎉 Deployment successful and verified!"
         }
         failure {
-            echo "❌ Deployment failed."
+            echo "❌ Deployment failed. Check systemctl and app logs."
         }
     }
 }
