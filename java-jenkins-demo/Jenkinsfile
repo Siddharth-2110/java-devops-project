@@ -4,9 +4,18 @@ pipeline {
     environment {
         APP_DIR  = 'java-jenkins-demo'
         APP_PORT = '8081'
+        JAVA_OPTS = '-Xms128m -Xmx256m'
     }
 
     stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'git',
+                    url: 'git@github.com:Siddharth-2110/java-devops-project.git'
+            }
+        }
 
         stage('Build') {
             steps {
@@ -21,42 +30,29 @@ pipeline {
                 dir("${APP_DIR}") {
                     script {
                         env.JAR_NAME = sh(
-                            script: "ls target/*.jar | grep -v original | head -n 1 | xargs basename",
+                            script: "ls target/*.jar | grep -v original | head -n 1 | xargs -n 1 basename",
                             returnStdout: true
                         ).trim()
 
-                        echo "Using JAR: ${env.JAR_NAME}"
+                        echo "Resolved JAR: ${env.JAR_NAME}"
                     }
                 }
             }
         }
 
-        stage('Deploy (DEBUG MODE)') {
+        stage('Deploy') {
             steps {
                 dir("${APP_DIR}") {
                     sh '''
-                    set +e
-
-                    echo "========== DEBUG INFO =========="
-                    echo "User:"
-                    whoami
-
-                    echo "Working directory:"
-                    pwd
-
-                    echo "Java version:"
-                    java -version
-
-                    echo "JAR to run:"
-                    echo "${JAR_NAME}"
-
-                    echo "Stopping old app if any..."
+                    echo "Stopping existing app (if any)..."
                     pkill -f "${JAR_NAME}" || true
 
-                    echo "Starting app in FOREGROUND (debug)..."
-                    java -jar target/${JAR_NAME} --server.port=${APP_PORT}
+                    echo "Starting application in background..."
+                    nohup setsid java $JAVA_OPTS -jar target/${JAR_NAME} \
+                      --server.port=${APP_PORT} \
+                      > app.log 2>&1 < /dev/null &
 
-                    echo "========== APP EXITED =========="
+                    echo "Deployment command executed."
                     '''
                 }
             }
@@ -65,10 +61,10 @@ pipeline {
 
     post {
         success {
-            echo "Build finished"
+            echo "✅ Build finished. App should be running on port ${APP_PORT}"
         }
         failure {
-            echo "Build failed"
+            echo "❌ Build failed. Check Jenkins console & app.log"
         }
     }
 }
