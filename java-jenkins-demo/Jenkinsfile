@@ -2,9 +2,12 @@ pipeline {
     agent any
 
     environment {
-        APP_DIR  = 'java-jenkins-demo'
-        SERVICE  = 'java-demo'
+        APP_DIR = 'java-jenkins-demo'
+        APP_NAME = 'java-demo'
+        JAR_NAME = 'demo-1.0.jar'
         DEPLOY_PATH = '/opt/java-demo/app.jar'
+        SERVICE_NAME = 'java-demo'
+        APP_PORT = '8081'
     }
 
     stages {
@@ -25,50 +28,33 @@ pipeline {
             }
         }
 
-        stage('Resolve Artifact') {
-            steps {
-                dir("${APP_DIR}") {
-                    script {
-                        env.JAR_NAME = sh(
-                            script: "ls target/*.jar | grep -v original | head -n 1 | xargs basename",
-                            returnStdout: true
-                        ).trim()
-
-                        echo "Resolved artifact: ${env.JAR_NAME}"
-                    }
-                }
-            }
-        }
-
         stage('Deploy') {
             steps {
-                sh '''
-                echo "Deploying new version..."
-
-                sudo cp java-jenkins-demo/target/${JAR_NAME} ${DEPLOY_PATH}
-                sudo chown jenkins:jenkins ${DEPLOY_PATH}
-
-                sudo systemctl restart ${SERVICE}
-                '''
+                sh """
+                echo "Deploying application..."
+                sudo cp ${APP_DIR}/target/${JAR_NAME} ${DEPLOY_PATH}
+                sudo systemctl restart ${SERVICE_NAME}
+                """
             }
         }
 
         stage('Verify') {
             steps {
-                sh '''
-                sleep 5
-                sudo systemctl is-active --quiet ${SERVICE}
-                '''
+                sh """
+                echo "Verifying application..."
+                sleep 3
+                curl -f http://localhost:${APP_PORT}
+                """
             }
         }
     }
 
     post {
         success {
-            echo "✅ Deployment successful. Application is running."
+            echo "✅ Deployment successful. App running on port ${APP_PORT}"
         }
         failure {
-            echo "❌ Deployment failed. Check service logs."
+            echo "❌ Deployment failed."
         }
     }
 }
