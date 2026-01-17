@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        APP_DIR  = 'java-jenkins-demo'
-        APP_PORT = '8081'
+        APP_DIR   = 'java-jenkins-demo'
+        APP_PORT  = '8081'
         JAVA_OPTS = '-Xms128m -Xmx256m'
     }
 
@@ -12,7 +12,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'git',
+                    credentialsId: 'github-ssh',
                     url: 'git@github.com:Siddharth-2110/java-devops-project.git'
             }
         }
@@ -52,7 +52,8 @@ pipeline {
                       --server.port=${APP_PORT} \
                       > app.log 2>&1 < /dev/null &
 
-                    echo "Deployment command executed."
+                    sleep 2
+                    echo "Deployment command completed."
                     '''
                 }
             }
