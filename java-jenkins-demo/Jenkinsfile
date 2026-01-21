@@ -48,7 +48,7 @@ pipeline {
 
                 docker run -d \
                   --name ${IMAGE_NAME} \
-                  -p ${APP_PORT}:${APP_PORT} \
+                  -p ${APP_PORT}:8080 \
                   --restart always \
                   ${IMAGE_NAME}:${BUILD_NUMBER}
                 '''
