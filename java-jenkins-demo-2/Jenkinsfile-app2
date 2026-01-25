@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_DIR        = "java-jenkins-demo-2"
+        IMAGE_NAME     = "java-demo-2"
+        CONTAINER_NAME = "java-demo-2"
+        HOST_PORT      = "8082"
+        CONTAINER_PORT = "8080"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Maven Build') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ."
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh """
+                docker rm -f ${CONTAINER_NAME} || true
+                docker run -d \
+                  --name ${CONTAINER_NAME} \
+                  -p ${HOST_PORT}:${CONTAINER_PORT} \
+                  ${IMAGE_NAME}:${BUILD_NUMBER}
+                """
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                sh '''
+                for i in {1..10}; do
+                  if curl -sf http://localhost:${HOST_PORT}; then
+                    echo "App-2 is UP"
+                    exit 0
+                  fi
+                  echo "Waiting for App-2..."
+                  sleep 3
+                done
+                echo "App-2 failed health check"
+                exit 1
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment successful for App-2 (Build ${BUILD_NUMBER})"
+        }
+        failure {
+            echo "Deployment failed for App-2"
+        }
+    }
+}
+
