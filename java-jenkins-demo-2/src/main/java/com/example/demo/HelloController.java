@@ -23,7 +23,7 @@ public class HelloController {
 
         return "My first deployment using CI-CD Pipeline! "
                 + "Deployment #" + CURRENT_DEPLOYMENT
-                + " | Time: " + currentTime + " This is applicatio 2 ";
+                + " | Time: " + currentTime + " This is application 2 ";
     }
 }
 
