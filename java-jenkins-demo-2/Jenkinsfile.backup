@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_DIR  = 'java-jenkins-demo'
+        APP_PORT = '8081'
+    }
+
+    stages {
+
+        stage('Build') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Resolve Artifact') {
+            steps {
+                dir("${APP_DIR}") {
+                    script {
+                        env.JAR_NAME = sh(
+                            script: "ls target/*.jar | grep -v original | head -n 1 | xargs basename",
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Deploying JAR: ${env.JAR_NAME}"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh '''
+                    set -e
+
+                    echo "Stopping old application (if running)..."
+                    pkill -f "${JAR_NAME}" || true
+
+                    echo "Starting application..."
+                    nohup java -jar target/${JAR_NAME} \
+                      --server.port=${APP_PORT} \
+                      > app.log 2>&1 &
+
+                    echo "Waiting for application to start..."
+                    sleep 8
+
+                    echo "Verifying application process..."
+                    pgrep -f "${JAR_NAME}" > /dev/null || (
+                        echo "❌ Application failed to start"
+                        echo "---- app.log ----"
+                        cat app.log
+                        exit 1
+                    )
+
+                    echo "✅ Application is running on port ${APP_PORT}"
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 Deployment successful"
+        }
+        failure {
+            echo "🚨 Deployment failed – check logs"
+        }
+    }
+}
+

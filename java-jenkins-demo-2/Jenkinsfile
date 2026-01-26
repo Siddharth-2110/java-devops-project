@@ -1,0 +1,89 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_DIR    = 'java-jenkins-demo'
+        APP_PORT   = '8081'
+        IMAGE_NAME = 'java-demo'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'github-ssh',
+                    url: 'git@github.com:Siddharth-2110/java-devops-project.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh '''
+                    echo "🐳 Building Docker image"
+                    docker build \
+                      --build-arg BUILD_NUMBER=${BUILD_NUMBER} \
+                      -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                echo "🚀 Deploying Docker container on port 8081"
+
+                docker stop ${IMAGE_NAME} || true
+                docker rm ${IMAGE_NAME} || true
+
+                docker run -d \
+                  --name ${IMAGE_NAME} \
+                  -p ${APP_PORT}:8080 \
+                  --restart always \
+                  ${IMAGE_NAME}:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                sh '''
+                echo "🔍 Verifying application health on port 8081"
+
+                for i in {1..10}; do
+                  if curl -sf http://localhost:${APP_PORT} > /dev/null; then
+                    echo "✅ Application is UP"
+                    exit 0
+                  fi
+                  echo "⏳ App not ready yet... retry $i"
+                  sleep 3
+                done
+
+                echo "❌ Application failed"
+                docker logs ${IMAGE_NAME}
+                exit 1
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 Docker deployment on port 8081 successful"
+        }
+        failure {
+            echo "❌ Deployment failed"
+        }
+    }
+}
+
