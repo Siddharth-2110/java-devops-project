@@ -4,7 +4,7 @@ pipeline {
     environment {
         APP_DIR    = 'java-jenkins-demo'
         APP_PORT   = '8081'
-        IMAGE_NAME = 'java-demo'
+        IMAGE_NAME = 'java-demo-2'
     }
 
     stages {
