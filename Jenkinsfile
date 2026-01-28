@@ -18,9 +18,8 @@ pipeline {
             steps {
                 sh '''
                   echo "🚀 Building and deploying full stack using Docker Compose"
-                  cd /opt/java-stack
-
-                  docker compose down
+                  
+                  docker compose down || true
                   docker compose build
                   docker compose up -d
                 '''
