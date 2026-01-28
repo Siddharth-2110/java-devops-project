@@ -14,6 +14,21 @@ pipeline {
             }
         }
 
+        stage('Build Applications') {
+            steps {
+                sh '''
+              echo "🔨 Building App-1"
+              cd java-jenkins-demo
+              mvn clean package -DskipTests
+
+              echo "🔨 Building App-2"
+              cd ../java-jenkins-demo-2
+              mvn clean package -DskipTests
+                '''
+                }
+        }
+
+
         stage('Build & Deploy with Docker Compose') {
             steps {
                 sh '''
