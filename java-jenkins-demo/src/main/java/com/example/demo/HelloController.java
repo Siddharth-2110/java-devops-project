@@ -23,7 +23,7 @@ public class HelloController {
 
         return "My first deployment using CI-CD Pipeline! "
                 + "Deployment #" + CURRENT_DEPLOYMENT
-                + " | Time: " + currentTime + " This is my application 1 final built with Docker Compose ";
+                + " | Time: " + currentTime + " This is my application 1 final built with Docker Compose " + "April 2026";
     }
 }
 
