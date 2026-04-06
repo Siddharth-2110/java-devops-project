@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        APP_DIR    = 'java-jenkins-demo'
+        APP_DIR    = 'java-demo-demo-3'
         APP_PORT   = '8083'
         IMAGE_NAME = 'java-demo'
     }
